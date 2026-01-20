@@ -7,7 +7,8 @@
 
   // Previsualización
   const previewWrap = document.getElementById('camera-preview');
-  const previewImg = document.getElementById('camera-preview-img');
+  const previewGrid = document.getElementById('camera-preview-grid');
+  const uploadText = document.getElementById('upload-text');
 
   // Modal de confirmación de subida
   const uploadModal = document.getElementById('upload-modal');
@@ -19,7 +20,8 @@
   const choiceModal = document.getElementById('choice-modal');
   const btnOpenGallery = document.getElementById('btn-open-gallery');
 
-  let lastFile = null;
+  let selectedFiles = [];
+  const MAX_PREVIEW_FILES = 6;
 
   /* Utilidades modal genéricas */
   function openModal(el) {
@@ -32,11 +34,11 @@
   }
 
   function resetSelection() {
-    lastFile = null;
+    selectedFiles = [];
     inputCamera.value = '';
     inputGallery.value = '';
     previewWrap.style.display = 'none';
-    previewImg.removeAttribute('src');
+    previewGrid.innerHTML = '';
   }
 
   // Al pulsar el icono "Cámara" -> mostramos el modal de elección
@@ -59,30 +61,59 @@
     }
   });
 
-  // Manejador común al seleccionar/tomar archivo (desde cámara o galería)
-  function handleFileFromInput(file) {
-    if (!file) return;
-    lastFile = file;
+  // Manejador común al seleccionar/tomar archivos (desde cámara o galería)
+  function handleFilesFromInput(files) {
+    if (!files || files.length === 0) return;
+    
+    selectedFiles = Array.from(files);
+    previewGrid.innerHTML = '';
 
-    // Previsualizar (imagen o video)
-    const url = URL.createObjectURL(lastFile);
-    if (file.type.startsWith('video/')) {
-      previewImg.innerHTML = `<video src="${url}" controls style="max-width:100%; max-height:50vh; object-fit:contain; border-radius:8px;"></video>`;
-    } else {
-      previewImg.innerHTML = `<img src="${url}" style="max-width:100%; max-height:50vh; object-fit:contain; border-radius:8px;" alt="Preview">`;
+    // Mostrar hasta MAX_PREVIEW_FILES archivos
+    const filesToShow = selectedFiles.slice(0, MAX_PREVIEW_FILES);
+    const remainingCount = selectedFiles.length - MAX_PREVIEW_FILES;
+
+    filesToShow.forEach((file, index) => {
+      const url = URL.createObjectURL(file);
+      const itemDiv = document.createElement('div');
+      itemDiv.style.cssText = 'position:relative; width:100%; padding-bottom:100%; overflow:hidden; border-radius:8px; background:#f0f0f0;';
+      
+      if (file.type.startsWith('video/')) {
+        itemDiv.innerHTML = `
+          <video src="${url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;" muted></video>
+          <div style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.7); color:white; padding:2px 6px; border-radius:4px; font-size:10px;">📹</div>
+        `;
+      } else {
+        itemDiv.innerHTML = `<img src="${url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;" alt="Preview ${index + 1}">`;
+      }
+      
+      previewGrid.appendChild(itemDiv);
+    });
+
+    // Si hay más archivos, mostrar +N
+    if (remainingCount > 0) {
+      const moreDiv = document.createElement('div');
+      moreDiv.style.cssText = 'position:relative; width:100%; padding-bottom:100%; overflow:hidden; border-radius:8px; background:#e0e0e0; display:flex; align-items:center; justify-content:center;';
+      moreDiv.innerHTML = `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:24px; font-weight:bold; color:#666;">+${remainingCount}</div>`;
+      previewGrid.appendChild(moreDiv);
     }
-    previewWrap.style.display = 'flex';
 
-    // Preguntar si subir
+    // Actualizar texto
+    if (selectedFiles.length === 1) {
+      uploadText.textContent = '¿Subir este archivo?';
+    } else {
+      uploadText.textContent = `¿Subir estos ${selectedFiles.length} archivos?`;
+    }
+
+    previewWrap.style.display = 'block';
     openModal(uploadModal);
   }
 
   // Escucha de ambos inputs
   inputCamera.addEventListener('change', function () {
-    handleFileFromInput(inputCamera.files && inputCamera.files[0]);
+    handleFilesFromInput(inputCamera.files);
   });
   inputGallery.addEventListener('change', function () {
-    handleFileFromInput(inputGallery.files && inputGallery.files[0]);
+    handleFilesFromInput(inputGallery.files);
   });
 
   // Cancelar subida
@@ -93,32 +124,55 @@
 
   // Confirmar subida
   btnConfirm.addEventListener('click', async function () {
-    if (!lastFile) return;
+    if (selectedFiles.length === 0) return;
+    
     statusEl.style.display = 'block';
-    statusEl.textContent = 'Subiendo…';
+    statusEl.textContent = `Subiendo 0/${selectedFiles.length}…`;
 
     try {
       const UPLOAD_URL = '/api/media/';
+      let uploadedCount = 0;
+      let failedCount = 0;
 
-      const fd = new FormData();
-      const safeName = lastFile.name && lastFile.name.trim() !== '' ? lastFile.name : 'foto.jpg';
-      fd.append('file', lastFile, safeName);
+      // Subir archivos secuencialmente
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const fd = new FormData();
+        const safeName = file.name && file.name.trim() !== '' ? file.name : `archivo_${Date.now()}_${i}.jpg`;
+        fd.append('file', file, safeName);
 
-      const resp = await fetch(UPLOAD_URL, {
-        method: 'POST',
-        body: fd,
-      });
+        try {
+          const resp = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            body: fd,
+          });
 
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error('Error al subir: ' + text);
+          if (!resp.ok) {
+            throw new Error('Error al subir');
+          }
+          
+          uploadedCount++;
+          statusEl.textContent = `Subiendo ${uploadedCount}/${selectedFiles.length}…`;
+        } catch (err) {
+          console.error('Error subiendo archivo:', file.name, err);
+          failedCount++;
+        }
       }
 
-      statusEl.textContent = 'Subido. Redirigiendo al álbum…';
-      window.location.href = '/album/';
+      if (failedCount === 0) {
+        statusEl.textContent = `${uploadedCount} archivos subidos. Redirigiendo…`;
+        setTimeout(() => {
+          window.location.href = '/album/';
+        }, 1000);
+      } else {
+        statusEl.textContent = `${uploadedCount} subidos, ${failedCount} fallaron. Redirigiendo…`;
+        setTimeout(() => {
+          window.location.href = '/album/';
+        }, 2000);
+      }
     } catch (err) {
       console.error(err);
-      statusEl.textContent = 'Fallo al subir. Inténtalo de nuevo.';
+      statusEl.textContent = 'Error al subir. Inténtalo de nuevo.';
     }
   });
 

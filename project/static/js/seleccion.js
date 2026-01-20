@@ -396,7 +396,11 @@
 
   document.addEventListener('pointerdown', (ev) => {
     if (!selectionMode) return;
-    if (ev.target.closest('.album-img') || ev.target.closest('.selection-bar')) return;
+    // No salir del modo si se hace click en: imágenes, barra de selección, checkbox o menú
+    if (ev.target.closest('.album-img') || 
+        ev.target.closest('.selection-bar') ||
+        ev.target.closest('.selection-mode-toggle') ||
+        ev.target.closest('.album-menu')) return;
     if (selected.size === 0) exitSelectionMode();
   });
 

@@ -170,7 +170,7 @@ a {
 .selection-mode-toggle {
   position: fixed;
   left: 50%;
-  bottom: calc(90px + env(safe-area-inset-bottom));
+  bottom: calc(110px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 91;
   background: hsla(32, 19%, 68%, 0.85);

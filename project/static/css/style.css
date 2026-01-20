@@ -243,7 +243,7 @@ a {
   object-fit: cover;
   border-radius: 8px;
   position: relative;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   user-select: none;

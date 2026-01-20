@@ -47,9 +47,73 @@
   });
 
   // Botones del modal de elección
-  btnOpenCamera.addEventListener('click', function () {
+  btnOpenCamera.addEventListener('click', async function () {
     closeModal(choiceModal);
-    // Disparamos la cámara nativa (en la mayoría de móviles)
+    
+    // Intentar usar getUserMedia API primero (cámara real)
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        // Solicitar acceso a la cámara
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user' }, 
+          audio: false 
+        });
+        
+        // Crear canvas para capturar foto
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.autoplay = true;
+        video.playsInline = true;
+        
+        // Modal temporal para vista de cámara
+        const cameraModal = document.createElement('div');
+        cameraModal.className = 'modal is-open';
+        cameraModal.innerHTML = `
+          <div class="modal__backdrop"></div>
+          <div class="modal__dialog" style="max-width:100%; height:100vh; padding:0; margin:0; border-radius:0;">
+            <div style="position:relative; width:100%; height:100%;">
+              <video id="camera-stream" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+              <button id="capture-photo" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); width:70px; height:70px; border-radius:50%; background:#fff; border:4px solid #000; cursor:pointer;"></button>
+              <button id="close-camera" style="position:absolute; top:20px; right:20px; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; font-size:24px; cursor:pointer;">✕</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(cameraModal);
+        const videoElement = cameraModal.querySelector('#camera-stream');
+        videoElement.srcObject = stream;
+        
+        // Capturar foto
+        cameraModal.querySelector('#capture-photo').addEventListener('click', () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          
+          canvas.toBlob((blob) => {
+            stream.getTracks().forEach(track => track.stop());
+            cameraModal.remove();
+            
+            // Crear archivo desde blob
+            const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            handleFileFromInput(file);
+          }, 'image/jpeg', 0.9);
+        });
+        
+        // Cerrar cámara
+        cameraModal.querySelector('#close-camera').addEventListener('click', () => {
+          stream.getTracks().forEach(track => track.stop());
+          cameraModal.remove();
+        });
+        
+        return; // Salir, no usar input file
+      } catch (err) {
+        console.warn('getUserMedia falló, usando input file:', err);
+        // Continuar con input file como fallback
+      }
+    }
+    
+    // Fallback: input file tradicional
     inputCamera.click();
   });
 

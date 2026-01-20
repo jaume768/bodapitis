@@ -204,6 +204,15 @@
 
   const state = new WeakMap(); // img -> {timer, startX, startY, longTriggered}
 
+  // CRÍTICO: touchstart se dispara ANTES que pointerdown, bloqueando menú contextual
+  gallery.addEventListener('touchstart', (ev) => {
+    const img = ev.target.closest('.album-img');
+    if (!img) return;
+    
+    // Prevenir menú contextual INMEDIATAMENTE
+    ev.preventDefault();
+  }, { passive: false });
+
   gallery.addEventListener('pointerdown', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;

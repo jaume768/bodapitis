@@ -52,12 +52,25 @@
     
     // Intentar usar getUserMedia API primero (cámara real)
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        // Solicitar acceso a la cámara
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'user' }, 
+      let currentFacingMode = 'environment'; // Cámara trasera por defecto
+      let stream = null;
+      
+      const startCamera = async (facingMode) => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: facingMode }, 
           audio: false 
         });
+        
+        return stream;
+      };
+      
+      try {
+        // Iniciar cámara trasera
+        stream = await startCamera(currentFacingMode);
         
         // Crear canvas para capturar foto
         const video = document.createElement('video');
@@ -74,7 +87,8 @@
             <div style="position:relative; width:100%; height:100%;">
               <video id="camera-stream" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
               <button id="capture-photo" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); width:70px; height:70px; border-radius:50%; background:#fff; border:4px solid #000; cursor:pointer;"></button>
-              <button id="close-camera" style="position:absolute; top:20px; right:20px; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; font-size:24px; cursor:pointer;">✕</button>
+              <button id="flip-camera" style="position:absolute; top:20px; left:20px; width:50px; height:50px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; font-size:24px; cursor:pointer;">🔄</button>
+              <button id="close-camera" style="position:absolute; top:20px; right:20px; width:50px; height:50px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; font-size:24px; cursor:pointer;">✕</button>
             </div>
           </div>
         `;
@@ -82,6 +96,17 @@
         document.body.appendChild(cameraModal);
         const videoElement = cameraModal.querySelector('#camera-stream');
         videoElement.srcObject = stream;
+        
+        // Alternar cámara
+        cameraModal.querySelector('#flip-camera').addEventListener('click', async () => {
+          try {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            stream = await startCamera(currentFacingMode);
+            videoElement.srcObject = stream;
+          } catch (err) {
+            console.error('Error al cambiar cámara:', err);
+          }
+        });
         
         // Capturar foto
         cameraModal.querySelector('#capture-photo').addEventListener('click', () => {

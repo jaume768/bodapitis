@@ -3,12 +3,12 @@
 
 {
     # Email para certificados SSL de Let's Encrypt
-    email tu@email.com
+    email jaumefernandezsunyer12@gmail.com
 }
 
 # Redirigir www a no-www (opcional)
 www.tudominio.com {
-    redir https://tudominio.com{uri} permanent
+    redir https://bodapitis.com{uri} permanent
 }
 
 # Configuración principal

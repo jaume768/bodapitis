@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitis Wedding - Ayuda</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/colores.css' %}">
+</head>
+
+<body class="app-background">
+    <header class="ayuda-header">
+        <div class="contenido-estatico">
+            <div class="volver-home">
+                <a href="{% url 'home' %}"><img src="{% static 'icons/iconosPitisW/volver.png' %}" alt="" class="icono-btn-volver"></a>
+            </div>
+            <div class="home-logo-album">
+                <img src="{% static 'icons/iconosPitisW/PitisLogo.PNG' %}" alt="">
+            </div>
+        </div>
+    </header>
+    <div class="carrusel">
+        <div class="card-container">
+            <img src="{% static 'icons/iconosPitisW/icons8-qr-code-100.png' %}" alt="">
+            <ul>
+                <li>
+                    Tras acceder a la aplicación atraves del QR, os encontrareis en el Home de la app, en ella tenemos 3 iconos distintos:
+                </li>
+            </ul>
+            <ol>
+                <li>Cámara</li>
+                <li>Álbum</li>
+                <li>Ayuda</li>
+            </ol>
+        </div>
+        <div class="card-container">
+            <img src="{% static 'icons/iconosPitisW/icons8-cámara-100.png' %}" alt="">
+            <ul>
+                <li>
+                    Al presionar en el icono apareceran 2 opciones:
+                </li>
+            </ul>
+            <ol>
+                <li>
+                    Crear recuerdo: Nos llevará a la cámara para realizar fotos/videos.
+                </li>
+                <li>
+                    Subir contenido: Accederemos a nuestra galería y podremos selecciones la foto o video que queramos.
+                </li>
+            </ol>
+        </div>
+        <div class="card-container">
+            <img src="{% static 'icons/iconosPitisW/icons8-pila-de-fotos-100.png' %}" alt="">
+            <ul>
+                <li>
+                    Al presionar en el icono podremos ver todos los recuerdos subidos por nosotros y el resto de
+                    invitados.
+                </li>
+                <li>Para poder seleccionar la o las imagenes que deseamos debemos:</li>
+            </ul>
+            <ol>
+                <li>
+                    Mantener pulsada la foto unos segundos. Aparecera un texto arriba con el numero de fotos
+                    seleccionadas.
+                </li>
+                <li>
+                    Seleccionar uno de los dos iconos que vemos abajo.
+                </li>
+                <li>
+                    Para salir de la seleccion pulsamos la X de arriba.
+                </li>
+            </ol>
+            </ul>
+        </div>
+        <div class="card-container">
+            <ul>
+                <li>
+                    Iconos:
+                </li>
+                <li>
+                    <img src="{% static 'icons/iconosPitisW/icons8-abajo-en-círculo-2-100.png' %}" alt="">Icono de Descarga. Las imagenes
+                    seleccionadas se guardaran en la galeria de vuestro dispositivo.
+                </li>
+                <li>
+                    <img src="{% static 'icons/iconosPitisW/icons8-shuffle-100.png' %}" alt="">Icono para Compartir. Podemos compartir el
+                    contenido seleccionado con otras personas a traves de distintos canales de difusión (correo, redes
+                    sociales, etc)
+                </li>
+                <li>
+                    <img src="{% static 'icons/iconosPitisW/volver.png' %}" alt="">Para volver a la pagina principal.
+                </li>
+            </ul>
+        </div>
+        <div class="card-container">
+            <img src="{% static 'icons/iconosPitisW/icons8-flash-activado-100.png' %}" alt="">
+            <ul>
+                <li>Recordad que vuestras cámaras serán la mejor forma de hacer que cada instante sea inolvidable, para
+                    este día tan importante para Joana y Alejandro.</li>
+            </ul>
+        </div>
+        <div class="card-container">
+            <img src="{% static 'icons/iconosPitisW/icons8-espionaje-100.png' %}" alt="">
+            <ul>
+                <li>
+                    Si teneis mas dudas de como funciona la app, buscad a Jaume y Alexandra, estaremos encantados de
+                    poder ayudaros.
+                </li>
+            </ul>
+        </div>
+        <button id="next">></button>
+        <button id="prev"><</button>
+    </div>
+
+    <footer>
+        <div class="logoJaumyAle">
+            <img src="{% static 'icons/iconosPitisW/logoJaumyAle.PNG' %}" alt="">
+        </div>
+    </footer>
+
+    <script src="{% static 'js/ayuda.js' %}" defer></script>
+</body>
+
+</html>

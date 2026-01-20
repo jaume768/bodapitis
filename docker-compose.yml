@@ -1,0 +1,54 @@
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: wedding_gallery_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: bodapitisapp
+      MYSQL_USER: django
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - wedding_network
+
+  # Django Backend
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wedding_gallery_web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./project:/app
+      - media_files:/app/media
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DJANGO_WATCH_USE_POLLING=1
+    networks:
+      - wedding_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  media_files:
+
+networks:
+  wedding_network:
+    name: wedding_gallery_network
+    driver: bridge

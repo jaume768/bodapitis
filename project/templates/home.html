@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitis Wedding - Home</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/colores.css' %}">
+</head>
+
+<body class="app-background">
+    <header>
+        <div class="home-container">
+
+            <div class="home-header">
+                <img src="{% static 'icons/iconosPitisW/pitis.jpg' %}" alt="Pareja" class="header-image">
+            </div>
+
+            <div class="home-logo">
+                <img src="{% static 'icons/iconosPitisW/PitisLogo.PNG' %}" alt="">
+            </div>
+            <div class="home-snitch">
+                <img src="{% static 'icons/iconosPitisW/Generated_Image_September_11_2025_-_7_13PM (1).png' %}" alt="">
+            </div>
+
+    </header>
+
+    <div class="home-options">
+        <div class="option1">
+            <a id="open-camera" href="#">
+                <img src="{% static 'icons/iconosPitisW/icons8-cámara-100.png' %}" alt="Cámara" class="option-icon">
+                <p>Cámara</p>
+            </a>
+        </div>
+        <div class="option2">
+            <a href="{% url 'ayuda' %}"><img src="{% static 'icons/iconosPitisW/icons8-question-mark-100.png' %}" alt="Ayuda" class="option-icon">
+                <p>Ayuda</p>
+            </a>
+        </div>
+        <div class="option3">
+            <a href="{% url 'album' %}"><img src="{% static 'icons/iconosPitisW/icons8-pila-de-fotos-100.png' %}" alt="Álbum"
+                    class="option-icon">
+                <p>Álbum</p>
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="logoJaumyAle">
+            <img src="{% static 'icons/iconosPitisW/logoJaumyAle.PNG' %}" alt="">
+        </div>
+    </footer>
+   <!-- Input oculto: Cámara (abre cámara del móvil) -->
+<input id="camera-input" type="file" accept="image/*,video/*" capture="environment" style="display:none">
+
+<!-- Input oculto: Galería (abre selector de archivos/galería) -->
+<input id="gallery-input" type="file" accept="image/*,video/*" style="display:none">
+
+<!-- Modal de elección: Cámara o Galería -->
+<div id="choice-modal" class="modal" aria-hidden="true">
+  <div class="modal__backdrop"></div>
+  <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="choice-modal-title">
+    <h3 id="choice-modal-title" class="modal__title">¿Qué quieres hacer?</h3>
+    <p class="modal__text">Elige una opción:</p>
+    <div class="modal__actions" style="justify-content:space-between;">
+      <button id="btn-open-camera" type="button" class="btn btn--primary"><img src="{% static 'icons/iconosPitisW/icons8-fantasía-100.png' %}" alt="icono boton" class="icono-btn-opt">Crear recuerdo</button>
+      <button id="btn-open-gallery" type="button" class="btn btn--secondary"><img src="{% static 'icons/iconosPitisW/icons8-moment-sharing-100.png' %}" alt="icono boton" class="icono-btn-opt">Subir contenido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación de subida -->
+<div id="upload-modal" class="modal" aria-hidden="true">
+  <div class="modal__backdrop"></div>
+  <div class="modal__dialog" role="dialog" aria-modal="true">
+    <h3 class="modal__title">Vista previa</h3>
+    <div id="camera-preview" style="display:none; margin-bottom:10px;">
+      <div id="camera-preview-img"></div>
+    </div>
+    <p class="modal__text">¿Subir este archivo?</p>
+    <div class="modal__actions">
+      <button id="btn-cancel" type="button" class="btn btn--secondary">Cancelar</button>
+      <button id="btn-confirm" type="button" class="btn btn--primary">Subir</button>
+    </div>
+    <div id="upload-status" class="modal__status" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="{% static 'js/camara.js' %}" defer></script>
+</body>
+
+</html>

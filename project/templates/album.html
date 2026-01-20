@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitis Wedding - Álbum</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/colores.css' %}">
+</head>
+
+<body class="app-background">
+
+  <div class="album-container">
+
+    <!-- Menú superior -->
+    <header class="album-header">
+      <div class="contenido-estatico">
+        <div class="volver-home">
+          <a href="{% url 'home' %}"><img src="{% static 'icons/iconosPitisW/volver.png' %}" alt="" class="icono-btn-volver"></a>
+        </div>
+        <div class="home-logo-album">
+          <img src="{% static 'icons/iconosPitisW/PitisLogo.PNG' %}" alt="">
+        </div>
+      </div>
+      <div class="album-menu">
+        <div>
+          <p>Descargar</p>
+          <img src="{% static 'icons/iconosPitisW/icons8-abajo-en-círculo-2-100.png' %}" alt="" class="boton-descarga">
+        </div>
+        <div>
+          <p>Compartir</p>
+          <img src="{% static 'icons/iconosPitisW/icons8-shuffle-100.png' %}" alt="" class="boton-compartir">
+        </div>
+      </div>
+
+    </header>
+    <div id="header-sentinel" aria-hidden="true"></div>
+    <!-- Galería -->
+    <div class="album-gallery" id="album-gallery">
+      <!-- Las imágenes se cargarán dinámicamente desde la API -->
+    </div>
+
+  </div>
+
+  <script src="{% static 'js/menuflotante.js' %}" defer></script>
+  <script src="{% static 'js/seleccion.js' %}" defer></script>
+  <script src="{% static 'js/album.js' %}" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+# Caddyfile - Configuración de Caddy para reverse proxy con SSL automático
+# REEMPLAZA 'tudominio.com' con tu dominio real
+
+{
+    # Email para certificados SSL de Let's Encrypt
+    email tu@email.com
+}
+
+# Redirigir www a no-www (opcional)
+www.tudominio.com {
+    redir https://tudominio.com{uri} permanent
+}
+
+# Configuración principal
+tudominio.com {
+    # Codificación y compresión
+    encode gzip zstd
+
+    # Servir archivos estáticos directamente
+    handle /static/* {
+        root * /app/staticfiles
+        file_server
+    }
+
+    # Proxy inverso a Django (Gunicorn)
+    handle {
+        reverse_proxy web:8000 {
+            # Headers para mantener información del cliente
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            
+            # Timeouts
+            transport http {
+                dial_timeout 5s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    # Logs
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+
+    # Límites de tamaño de request (para subidas de archivos)
+    request_body {
+        max_size 100MB
+    }
+}

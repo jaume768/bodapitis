@@ -69,8 +69,6 @@
   }
 
   // Función para descargar archivos seleccionados
-  // IMPORTANTE: En móviles, las descargas programáticas suelen fallar por CORS y restricciones del navegador
-  // La solución más confiable es abrir los archivos para que el usuario los descargue manualmente
   async function downloadSelected() {
     if (selected.size === 0) return;
     
@@ -81,73 +79,53 @@
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile) {
-      // En móviles, abrir archivos en nueva pestaña
-      // El usuario puede usar "mantener presionado > guardar imagen/video"
-      if (items.length > 3) {
-        const confirm = window.confirm(`Vas a abrir ${items.length} archivos en nuevas pestañas.\n\nPara guardarlos:\n1. Mantén presionado sobre cada archivo\n2. Selecciona "Guardar imagen" o "Descargar"\n\n¿Continuar?`);
-        if (!confirm) return;
-      }
-      
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const url = item.dataset.url;
-        
-        if (!url) continue;
-        
-        try {
-          // Abrir en nueva pestaña
-          window.open(url, '_blank');
-          
-          // Delay entre aperturas para evitar bloqueo del navegador
-          if (i < items.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 600));
-          }
-        } catch (error) {
-          console.error('Error abriendo archivo:', url, error);
-        }
-      }
-      
-      vibrate(15);
-      
-      // Mostrar instrucciones
-      if (items.length > 0) {
-        setTimeout(() => {
-          alert('Para guardar los archivos:\n\n1. Mantén presionado sobre la imagen/video\n2. Selecciona "Guardar" o "Descargar"');
-        }, 1000);
-      }
-    } else {
-      // En desktop, intentar descarga directa
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const url = item.dataset.url;
-        const type = item.dataset.type || 'image';
-        
-        if (!url) continue;
-        
-        try {
-          // Intentar descarga directa desde URL
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${type}_${Date.now()}_${i}`;
-          a.target = '_blank';
-          
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          
-          // Delay entre descargas
-          if (i < items.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-        } catch (error) {
-          console.error('Error descargando:', url, error);
-          // Fallback: abrir en nueva pestaña
-          window.open(url, '_blank');
-        }
-      }
-      
-      vibrate(15);
+      // En móviles, mostrar mensaje que la descarga solo está disponible en PC
+      alert('La descarga directa solo está disponible en PC.\n\nDesde móvil puedes usar el botón "Compartir" para guardar los archivos en tu dispositivo.');
+      return;
     }
+    
+    // En PC, descarga directa con blobs
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const url = item.dataset.url;
+      const type = item.dataset.type || 'image';
+      
+      if (!url) continue;
+      
+      try {
+        // Fetch para obtener el archivo como blob
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        // Crear URL temporal del blob
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Obtener extensión del archivo desde la URL
+        const urlPath = new URL(url).pathname;
+        const extension = urlPath.substring(urlPath.lastIndexOf('.'));
+        
+        // Crear enlace temporal y forzar descarga
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${type}_${Date.now()}_${i}${extension}`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Liberar el blob URL después de un momento
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        
+        // Delay entre descargas para no saturar el navegador
+        if (i < items.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        console.error('Error descargando:', url, error);
+      }
+    }
+    
+    vibrate(15);
   }
 
   // Función para compartir archivos seleccionados
@@ -289,10 +267,45 @@
     }
   }, { passive: false });
 
+  // En PC, permitir click normal o Ctrl+Click para seleccionar
+  gallery.addEventListener('click', (ev) => {
+    const img = ev.target.closest('.album-img');
+    if (!img) return;
+    
+    // Si es click con Ctrl/Cmd en PC, ya se manejó en pointerdown
+    // Solo procesar clicks normales aquí
+    if (ev.ctrlKey || ev.metaKey) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+    
+    // Si estamos en modo selección, toggle la imagen
+    if (selectionMode) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      toggleImage(img);
+      vibrate(7);
+    }
+  }, true); // Capture phase
+
   gallery.addEventListener('pointerdown', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;
 
+    // En PC (mouse), permitir Ctrl+Click para seleccionar
+    if (ev.pointerType === 'mouse') {
+      if (ev.ctrlKey || ev.metaKey) {
+        ev.preventDefault();
+        ensureSelectionMode();
+        toggleImage(img);
+        vibrate(7);
+      }
+      return; // No procesar long-press en PC
+    }
+
+    // En móvil (touch/pen), usar long-press
     if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
 
     // NO prevenir por defecto aquí - dejar que el click normal funcione
@@ -384,18 +397,6 @@
     img.setAttribute('aria-pressed', 'false');
   });
 
-  // Interceptar clicks en fase de captura para prevenir apertura del visor
-  // cuando acabamos de salir del modo selección O estamos en modo selección
-  gallery.addEventListener('click', (ev) => {
-    const img = ev.target.closest('.album-img');
-    if (!img) return;
-    
-    if (selectionMode || window.justExitedSelectionMode) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.stopImmediatePropagation();
-    }
-  }, true); // true = capture phase, se ejecuta ANTES que los listeners normales
 
   // Prevenir menú contextual nativo en imágenes
   gallery.addEventListener('contextmenu', (ev) => {

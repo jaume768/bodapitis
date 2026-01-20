@@ -7,12 +7,12 @@
 }
 
 # Redirigir www a no-www (opcional)
-www.tudominio.com {
+www.bodapitis.com {
     redir https://bodapitis.com{uri} permanent
 }
 
 # Configuración principal
-tudominio.com {
+bodapitis.com {
     # Codificación y compresión
     encode gzip zstd
 

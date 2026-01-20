@@ -244,14 +244,12 @@ a {
   border-radius: 8px;
   position: relative;
   touch-action: manipulation;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 /* ===== Selección múltiple ===== */
-.album-img {
-  position: relative;
-  touch-action: manipulation;
-}
-
 body.selecting {
   -webkit-user-select: none;
   user-select: none;

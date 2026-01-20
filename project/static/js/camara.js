@@ -49,7 +49,7 @@
   // Botones del modal de elección
   btnOpenCamera.addEventListener('click', function () {
     closeModal(choiceModal);
-    // Abre la cámara nativa del dispositivo
+    // Abrir cámara nativa del dispositivo
     inputCamera.click();
   });
 

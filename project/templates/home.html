@@ -62,11 +62,10 @@
 <div id="choice-modal" class="modal" aria-hidden="true">
   <div class="modal__backdrop"></div>
   <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="choice-modal-title">
-    <h3 id="choice-modal-title" class="modal__title">¿Qué quieres hacer?</h3>
-    <p class="modal__text">Elige una opción:</p>
-    <div class="modal__actions" style="justify-content:space-between;">
-      <button id="btn-open-camera" type="button" class="btn btn--primary"><img src="{% static 'icons/iconosPitisW/icons8-fantasía-100.png' %}" alt="icono boton" class="icono-btn-opt">Crear recuerdo</button>
-      <button id="btn-open-gallery" type="button" class="btn btn--secondary"><img src="{% static 'icons/iconosPitisW/icons8-moment-sharing-100.png' %}" alt="icono boton" class="icono-btn-opt">Subir contenido</button>
+    <h3 id="choice-modal-title" class="modal__title">Subir contenido</h3>
+    <p class="modal__text">Selecciona fotos o videos de tu galería:</p>
+    <div class="modal__actions" style="justify-content:center;">
+      <button id="btn-open-gallery" type="button" class="btn btn--primary"><img src="{% static 'icons/iconosPitisW/icons8-moment-sharing-100.png' %}" alt="icono boton" class="icono-btn-opt">Abrir galería</button>
     </div>
   </div>
 </div>
@@ -74,13 +73,13 @@
 <!-- Modal de confirmación de subida -->
 <div id="upload-modal" class="modal" aria-hidden="true">
   <div class="modal__backdrop"></div>
-  <div class="modal__dialog" role="dialog" aria-modal="true">
+  <div class="modal__dialog" role="dialog" aria-modal="true" style="max-height:90vh; display:flex; flex-direction:column;">
     <h3 class="modal__title">Vista previa</h3>
-    <div id="camera-preview" style="display:none; margin-bottom:10px;">
-      <div id="camera-preview-img"></div>
+    <div id="camera-preview" style="display:none; margin-bottom:10px; max-height:50vh; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+      <div id="camera-preview-img" style="max-width:100%; max-height:50vh; overflow:hidden;"></div>
     </div>
     <p class="modal__text">¿Subir este archivo?</p>
-    <div class="modal__actions">
+    <div class="modal__actions" style="margin-top:auto;">
       <button id="btn-cancel" type="button" class="btn btn--secondary">Cancelar</button>
       <button id="btn-confirm" type="button" class="btn btn--primary">Subir</button>
     </div>

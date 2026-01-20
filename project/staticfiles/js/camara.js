@@ -17,7 +17,6 @@
 
   // Modal de elección (nuevo)
   const choiceModal = document.getElementById('choice-modal');
-  const btnOpenCamera = document.getElementById('btn-open-camera');
   const btnOpenGallery = document.getElementById('btn-open-gallery');
 
   let lastFile = null;
@@ -46,12 +45,7 @@
     openModal(choiceModal);
   });
 
-  // Botones del modal de elección
-  btnOpenCamera.addEventListener('click', function () {
-    closeModal(choiceModal);
-    inputCamera.click();
-  });
-
+  // Botón del modal de elección
   btnOpenGallery.addEventListener('click', function () {
     closeModal(choiceModal);
     // Abrimos selector/galería
@@ -73,11 +67,11 @@
     // Previsualizar (imagen o video)
     const url = URL.createObjectURL(lastFile);
     if (file.type.startsWith('video/')) {
-      previewImg.innerHTML = `<video src="${url}" controls style="max-width:100%; border-radius:8px;"></video>`;
+      previewImg.innerHTML = `<video src="${url}" controls style="max-width:100%; max-height:50vh; object-fit:contain; border-radius:8px;"></video>`;
     } else {
-      previewImg.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;" alt="Preview">`;
+      previewImg.innerHTML = `<img src="${url}" style="max-width:100%; max-height:50vh; object-fit:contain; border-radius:8px;" alt="Preview">`;
     }
-    previewWrap.style.display = 'block';
+    previewWrap.style.display = 'flex';
 
     // Preguntar si subir
     openModal(uploadModal);

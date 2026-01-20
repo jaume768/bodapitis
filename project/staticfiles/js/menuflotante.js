@@ -40,7 +40,15 @@
       btnDescarga.style.cursor = 'pointer';
       btnDescarga.addEventListener('click', () => {
         if (typeof window.downloadSelected === 'function') {
-          window.downloadSelected();
+          // Verificar si hay archivos seleccionados
+          const hasSelection = document.querySelectorAll('.album-img.is-selected').length > 0;
+          
+          if (hasSelection) {
+            window.downloadSelected();
+          } else {
+            // Mostrar mensaje de ayuda si no hay selección
+            alert('Para descargar:\n\n1. Mantén presionado sobre una foto o video\n2. Selecciona los archivos que quieras\n3. Pulsa el botón Descargar\n\nEn iOS Safari, es posible que necesites dar permiso de descarga.');
+          }
         }
       });
     }

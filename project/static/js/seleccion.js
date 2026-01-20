@@ -75,6 +75,15 @@
     vibrate(15);
     const items = Array.from(selected);
     
+    // En iOS Safari, las descargas programáticas pueden fallar
+    // Detectar si es iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (isIOS && items.length > 1) {
+      alert('En iOS Safari no se pueden descargar múltiples archivos automáticamente.\n\nPor favor, usa el botón "Compartir" o selecciona archivos uno por uno.');
+      return;
+    }
+    
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const url = item.dataset.url;
@@ -83,32 +92,38 @@
       if (!url) continue;
       
       try {
-        // Fetch para obtener el archivo como blob
-        const response = await fetch(url);
-        const blob = await response.blob();
-        
-        // Crear URL temporal del blob
-        const blobUrl = URL.createObjectURL(blob);
-        
-        // Obtener extensión del archivo desde la URL
-        const urlPath = new URL(url).pathname;
-        const extension = urlPath.substring(urlPath.lastIndexOf('.'));
-        
-        // Crear enlace temporal y forzar descarga
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `${type}_${Date.now()}_${i}${extension}`;
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        // Liberar el blob URL después de un momento
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-        
-        // Delay entre descargas para no saturar el navegador
-        if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 800));
+        if (isIOS) {
+          // En iOS, mejor abrir en nueva pestaña para que el usuario descargue manualmente
+          window.open(url, '_blank');
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          // Fetch para obtener el archivo como blob
+          const response = await fetch(url);
+          const blob = await response.blob();
+          
+          // Crear URL temporal del blob
+          const blobUrl = URL.createObjectURL(blob);
+          
+          // Obtener extensión del archivo desde la URL
+          const urlPath = new URL(url).pathname;
+          const extension = urlPath.substring(urlPath.lastIndexOf('.'));
+          
+          // Crear enlace temporal y forzar descarga
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `${type}_${Date.now()}_${i}${extension}`;
+          
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Liberar el blob URL después de un momento
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+          
+          // Delay entre descargas para no saturar el navegador
+          if (i < items.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+          }
         }
       } catch (error) {
         console.error('Error descargando:', url, error);
@@ -209,8 +224,10 @@
     const img = ev.target.closest('.album-img');
     if (!img) return;
     
-    // Prevenir menú contextual INMEDIATAMENTE
-    ev.preventDefault();
+    // Solo prevenir menú contextual si estamos en modo selección
+    if (selectionMode) {
+      ev.preventDefault();
+    }
   }, { passive: false });
 
   gallery.addEventListener('pointerdown', (ev) => {
@@ -219,8 +236,8 @@
 
     if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
 
-    // Prevenir menú contextual nativo al hacer long-press
-    ev.preventDefault();
+    // NO prevenir por defecto aquí - dejar que el click normal funcione
+    // Solo capturar el pointer para tracking
     img.setPointerCapture?.(ev.pointerId);
 
     const info = {
@@ -278,13 +295,16 @@
         // Prevenir SIEMPRE si estábamos en modo selección, incluso si salimos después
         ev.preventDefault();
         ev.stopPropagation();
+        ev.stopImmediatePropagation();
         toggleImage(img);
         vibrate(7);
       }
+      // Si NO estamos en modo selección, dejar que el click pase normalmente
     } else {
       // Si fue long-press, prevenir el click que vendría después
       ev.preventDefault();
       ev.stopPropagation();
+      ev.stopImmediatePropagation();
     }
   });
 
@@ -306,9 +326,12 @@
   });
 
   // Interceptar clicks en fase de captura para prevenir apertura del visor
-  // cuando acabamos de salir del modo selección
+  // cuando acabamos de salir del modo selección O estamos en modo selección
   gallery.addEventListener('click', (ev) => {
-    if (window.justExitedSelectionMode) {
+    const img = ev.target.closest('.album-img');
+    if (!img) return;
+    
+    if (selectionMode || window.justExitedSelectionMode) {
       ev.preventDefault();
       ev.stopPropagation();
       ev.stopImmediatePropagation();

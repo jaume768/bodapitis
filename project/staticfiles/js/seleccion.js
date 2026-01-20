@@ -68,132 +68,191 @@
     maybeExitSelectionMode();
   }
 
-  // Función para descargar archivos seleccionados (descarga directa con fetch/blob)
+  // Función para descargar archivos seleccionados
+  // IMPORTANTE: En móviles, las descargas programáticas suelen fallar por CORS y restricciones del navegador
+  // La solución más confiable es abrir los archivos para que el usuario los descargue manualmente
   async function downloadSelected() {
     if (selected.size === 0) return;
     
     vibrate(15);
     const items = Array.from(selected);
     
-    // En iOS Safari, las descargas programáticas pueden fallar
-    // Detectar si es iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // Detectar si es móvil (Android o iOS)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    if (isIOS && items.length > 1) {
-      alert('En iOS Safari no se pueden descargar múltiples archivos automáticamente.\n\nPor favor, usa el botón "Compartir" o selecciona archivos uno por uno.');
-      return;
-    }
-    
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const url = item.dataset.url;
-      const type = item.dataset.type || 'image';
+    if (isMobile) {
+      // En móviles, abrir archivos en nueva pestaña
+      // El usuario puede usar "mantener presionado > guardar imagen/video"
+      if (items.length > 3) {
+        const confirm = window.confirm(`Vas a abrir ${items.length} archivos en nuevas pestañas.\n\nPara guardarlos:\n1. Mantén presionado sobre cada archivo\n2. Selecciona "Guardar imagen" o "Descargar"\n\n¿Continuar?`);
+        if (!confirm) return;
+      }
       
-      if (!url) continue;
-      
-      try {
-        if (isIOS) {
-          // En iOS, mejor abrir en nueva pestaña para que el usuario descargue manualmente
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const url = item.dataset.url;
+        
+        if (!url) continue;
+        
+        try {
+          // Abrir en nueva pestaña
           window.open(url, '_blank');
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } else {
-          // Fetch para obtener el archivo como blob
-          const response = await fetch(url);
-          const blob = await response.blob();
           
-          // Crear URL temporal del blob
-          const blobUrl = URL.createObjectURL(blob);
-          
-          // Obtener extensión del archivo desde la URL
-          const urlPath = new URL(url).pathname;
-          const extension = urlPath.substring(urlPath.lastIndexOf('.'));
-          
-          // Crear enlace temporal y forzar descarga
+          // Delay entre aperturas para evitar bloqueo del navegador
+          if (i < items.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+          }
+        } catch (error) {
+          console.error('Error abriendo archivo:', url, error);
+        }
+      }
+      
+      vibrate(15);
+      
+      // Mostrar instrucciones
+      if (items.length > 0) {
+        setTimeout(() => {
+          alert('Para guardar los archivos:\n\n1. Mantén presionado sobre la imagen/video\n2. Selecciona "Guardar" o "Descargar"');
+        }, 1000);
+      }
+    } else {
+      // En desktop, intentar descarga directa
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const url = item.dataset.url;
+        const type = item.dataset.type || 'image';
+        
+        if (!url) continue;
+        
+        try {
+          // Intentar descarga directa desde URL
           const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = `${type}_${Date.now()}_${i}${extension}`;
+          a.href = url;
+          a.download = `${type}_${Date.now()}_${i}`;
+          a.target = '_blank';
           
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           
-          // Liberar el blob URL después de un momento
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-          
-          // Delay entre descargas para no saturar el navegador
+          // Delay entre descargas
           if (i < items.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
+        } catch (error) {
+          console.error('Error descargando:', url, error);
+          // Fallback: abrir en nueva pestaña
+          window.open(url, '_blank');
         }
-      } catch (error) {
-        console.error('Error descargando:', url, error);
       }
+      
+      vibrate(15);
     }
-    
-    vibrate(15);
   }
 
-  // Función para compartir archivos seleccionados (Web Share API con fallback a WhatsApp)
+  // Función para compartir archivos seleccionados
+  // IMPORTANTE: Compartir archivos con fetch/blob puede fallar por CORS
+  // Mejor compartir URLs directas que funciona más confiable
   async function shareSelected() {
     if (selected.size === 0) return;
     
     vibrate(15);
     const items = Array.from(selected);
+    const urls = items.map(item => item.dataset.url).filter(url => url);
+    
+    if (urls.length === 0) return;
     
     try {
-      // Verificar si Web Share API está disponible
-      if (navigator.share) {
-        // Obtener los archivos como blobs y crear File objects
-        const files = [];
+      // Verificar si Web Share API está disponible Y soporta compartir texto/URLs
+      if (navigator.share && navigator.canShare) {
+        // Primero intentar verificar si se pueden compartir archivos
+        const canShareFiles = navigator.canShare({ files: [] });
         
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const url = item.dataset.url;
-          
-          if (!url) continue;
-          
+        if (canShareFiles && urls.length <= 3) {
+          // Intentar compartir archivos solo si son pocos (para evitar timeouts)
           try {
-            const response = await fetch(url);
-            const blob = await response.blob();
+            const files = [];
             
-            // Obtener extensión y tipo MIME
-            const urlPath = new URL(url).pathname;
-            const extension = urlPath.substring(urlPath.lastIndexOf('.'));
-            const fileName = `media_${Date.now()}_${i}${extension}`;
+            for (let i = 0; i < urls.length; i++) {
+              const url = urls[i];
+              
+              try {
+                const response = await fetch(url, { mode: 'cors' });
+                if (!response.ok) throw new Error('Fetch failed');
+                
+                const blob = await response.blob();
+                const urlPath = new URL(url).pathname;
+                const extension = urlPath.substring(urlPath.lastIndexOf('.'));
+                const fileName = `archivo_${i + 1}${extension}`;
+                const file = new File([blob], fileName, { type: blob.type });
+                files.push(file);
+              } catch (fetchError) {
+                console.warn('Error fetching file, will share URLs instead:', fetchError);
+                // Si falla el fetch, saltar a compartir URLs
+                throw fetchError;
+              }
+            }
             
-            // Crear File object desde blob
-            const file = new File([blob], fileName, { type: blob.type });
-            files.push(file);
-          } catch (error) {
-            console.error('Error obteniendo archivo:', url, error);
+            if (files.length > 0) {
+              await navigator.share({
+                files: files,
+                title: 'Fotos y videos de la boda',
+                text: `${files.length} archivo${files.length > 1 ? 's' : ''}`
+              });
+              vibrate(15);
+              return; // Éxito, salir
+            }
+          } catch (fileError) {
+            console.log('No se pudieron compartir archivos, compartiendo URLs:', fileError);
+            // Continuar para compartir URLs como fallback
           }
         }
         
-        if (files.length > 0) {
-          // Compartir usando Web Share API
-          await navigator.share({
-            files: files,
-            title: 'Fotos y videos',
-            text: `Compartiendo ${files.length} archivo${files.length > 1 ? 's' : ''}`
-          });
-          vibrate(15);
-        }
-      } else {
-        // Fallback: abrir WhatsApp Web con las URLs
-        const urls = items
-          .map(item => item.dataset.url)
-          .filter(url => url)
-          .join('\n');
+        // Fallback 1: Compartir URLs con Web Share API
+        const shareText = urls.length === 1 
+          ? `Mira esta foto/video de la boda:\n\n${urls[0]}`
+          : `Mira estas ${urls.length} fotos/videos de la boda:\n\n${urls.join('\n')}`;
         
-        if (urls) {
-          const text = encodeURIComponent(`Mira estas fotos y videos:\n\n${urls}`);
-          window.open(`https://wa.me/?text=${text}`, '_blank');
-          vibrate(15);
-        }
+        await navigator.share({
+          title: 'Fotos y videos de la boda',
+          text: shareText
+        });
+        vibrate(15);
+        
+      } else if (navigator.share) {
+        // Web Share API disponible pero sin canShare
+        const shareText = urls.length === 1 
+          ? `Mira esta foto/video de la boda:\n\n${urls[0]}`
+          : `Mira estas ${urls.length} fotos/videos de la boda:\n\n${urls.join('\n')}`;
+        
+        await navigator.share({
+          title: 'Fotos y videos de la boda',
+          text: shareText
+        });
+        vibrate(15);
+        
+      } else {
+        // Fallback 2: No hay Web Share API - usar WhatsApp
+        const text = encodeURIComponent(
+          urls.length === 1
+            ? `Mira esta foto/video de la boda:\n\n${urls[0]}`
+            : `Mira estas ${urls.length} fotos/videos de la boda:\n\n${urls.join('\n')}`
+        );
+        window.open(`https://wa.me/?text=${text}`, '_blank');
+        vibrate(15);
       }
     } catch (error) {
-      // Si el usuario cancela o hay error, no hacer nada
-      console.log('Compartir cancelado o error:', error);
+      // Si el usuario cancela o hay error
+      if (error.name === 'AbortError') {
+        console.log('Usuario canceló compartir');
+      } else {
+        console.error('Error al compartir:', error);
+        // Fallback final: abrir WhatsApp
+        const text = encodeURIComponent(
+          `Mira estas fotos/videos de la boda:\n\n${urls.join('\n')}`
+        );
+        window.open(`https://wa.me/?text=${text}`, '_blank');
+      }
     }
   }
 

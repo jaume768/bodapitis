@@ -17,7 +17,7 @@ bodapitis.com {
     encode gzip zstd
 
     # Servir archivos estáticos directamente
-    handle /static/* {
+    handle_path /static/* {
         root * /app/staticfiles
         file_server
     }

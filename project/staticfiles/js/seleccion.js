@@ -204,12 +204,23 @@
 
   const state = new WeakMap(); // img -> {timer, startX, startY, longTriggered}
 
+  // CRÍTICO: touchstart se dispara ANTES que pointerdown, bloqueando menú contextual
+  gallery.addEventListener('touchstart', (ev) => {
+    const img = ev.target.closest('.album-img');
+    if (!img) return;
+    
+    // Prevenir menú contextual INMEDIATAMENTE
+    ev.preventDefault();
+  }, { passive: false });
+
   gallery.addEventListener('pointerdown', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;
 
     if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
 
+    // Prevenir menú contextual nativo al hacer long-press
+    ev.preventDefault();
     img.setPointerCapture?.(ev.pointerId);
 
     const info = {
@@ -303,4 +314,13 @@
       ev.stopImmediatePropagation();
     }
   }, true); // true = capture phase, se ejecuta ANTES que los listeners normales
+
+  // Prevenir menú contextual nativo en imágenes
+  gallery.addEventListener('contextmenu', (ev) => {
+    const img = ev.target.closest('.album-img');
+    if (img) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+  });
 })();

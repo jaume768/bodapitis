@@ -166,6 +166,42 @@ a {
   width: auto;
 }
 
+/* ====== CHECKBOX MODO SELECCIÓN (SOLO PC) ====== */
+.selection-mode-toggle {
+  position: fixed;
+  left: 50%;
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 91;
+  background: hsla(32, 19%, 68%, 0.85);
+  backdrop-filter: blur(5px);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+  padding: 8px 16px;
+}
+
+.selection-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #171614;
+  user-select: none;
+}
+
+.selection-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #8B6F47;
+}
+
+.selection-checkbox-label span {
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
 /* ====== BARRA INFERIOR FIJA (ÁLBUM) ====== */
 .album-menu {
   position: fixed;

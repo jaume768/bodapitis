@@ -6,6 +6,18 @@
   const gallery = document.querySelector('.album-gallery');
   if (!gallery) return;
 
+  // Detectar si es PC o móvil
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // Referencias al checkbox de modo selección (solo PC)
+  const selectionToggle = document.getElementById('selection-mode-toggle');
+  const selectionCheckbox = document.getElementById('selection-mode-checkbox');
+  
+  // Mostrar checkbox solo en PC
+  if (!isMobile && selectionToggle) {
+    selectionToggle.style.display = 'block';
+  }
+
   // Barra de selección (X = limpiar selección)
   const bar = document.createElement('div');
   bar.className = 'selection-bar';
@@ -31,11 +43,21 @@
     if (selectionMode) return;
     selectionMode = true;
     document.body.classList.add('selecting');
+    
+    // Sincronizar checkbox en PC
+    if (!isMobile && selectionCheckbox) {
+      selectionCheckbox.checked = true;
+    }
   }
 
   function exitSelectionMode() {
     selectionMode = false;
     document.body.classList.remove('selecting');
+    
+    // Sincronizar checkbox en PC
+    if (!isMobile && selectionCheckbox) {
+      selectionCheckbox.checked = false;
+    }
     
     // Marcar que acabamos de salir del modo selección (usar window para que sea accesible desde album.js)
     window.justExitedSelectionMode = true;
@@ -74,9 +96,6 @@
     
     vibrate(15);
     const items = Array.from(selected);
-    
-    // Detectar si es móvil (Android o iOS)
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile) {
       // En móviles, mostrar mensaje que la descarga solo está disponible en PC
@@ -256,6 +275,24 @@
 
   const state = new WeakMap(); // img -> {timer, startX, startY, longTriggered}
 
+  // En PC: Checkbox para activar/desactivar modo selección
+  if (!isMobile && selectionCheckbox) {
+    selectionCheckbox.addEventListener('change', (ev) => {
+      if (ev.target.checked) {
+        ensureSelectionMode();
+      } else {
+        // Deseleccionar todas las imágenes
+        selected.forEach(img => {
+          img.classList.remove('is-selected');
+          img.setAttribute('aria-pressed', 'false');
+        });
+        selected.clear();
+        updateCount();
+        exitSelectionMode();
+      }
+    });
+  }
+
   // CRÍTICO: touchstart se dispara ANTES que pointerdown, bloqueando menú contextual
   gallery.addEventListener('touchstart', (ev) => {
     const img = ev.target.closest('.album-img');
@@ -267,42 +304,13 @@
     }
   }, { passive: false });
 
-  // En PC, permitir click normal o Ctrl+Click para seleccionar
-  gallery.addEventListener('click', (ev) => {
-    const img = ev.target.closest('.album-img');
-    if (!img) return;
-    
-    // Si es click con Ctrl/Cmd en PC, ya se manejó en pointerdown
-    // Solo procesar clicks normales aquí
-    if (ev.ctrlKey || ev.metaKey) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      return;
-    }
-    
-    // Si estamos en modo selección, toggle la imagen
-    if (selectionMode) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.stopImmediatePropagation();
-      toggleImage(img);
-      vibrate(7);
-    }
-  }, true); // Capture phase
-
   gallery.addEventListener('pointerdown', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;
 
-    // En PC (mouse), permitir Ctrl+Click para seleccionar
+    // En PC (mouse), no usar long-press
     if (ev.pointerType === 'mouse') {
-      if (ev.ctrlKey || ev.metaKey) {
-        ev.preventDefault();
-        ensureSelectionMode();
-        toggleImage(img);
-        vibrate(7);
-      }
-      return; // No procesar long-press en PC
+      return; // La selección se maneja con el checkbox + click normal
     }
 
     // En móvil (touch/pen), usar long-press
@@ -397,6 +405,21 @@
     img.setAttribute('aria-pressed', 'false');
   });
 
+  // En PC: permitir click normal cuando el modo selección está activo
+  // En móvil: solo permitir tap si está en modo selección
+  gallery.addEventListener('click', (ev) => {
+    const img = ev.target.closest('.album-img');
+    if (!img) return;
+    
+    // Si estamos en modo selección, toggle la imagen
+    if (selectionMode) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      toggleImage(img);
+      vibrate(7);
+    }
+  }, true); // Capture phase
 
   // Prevenir menú contextual nativo en imágenes
   gallery.addEventListener('contextmenu', (ev) => {

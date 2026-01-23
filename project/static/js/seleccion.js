@@ -426,16 +426,8 @@
     });
   }
 
-  // CRÍTICO: touchstart se dispara ANTES que pointerdown, bloqueando menú contextual
-  gallery.addEventListener('touchstart', (ev) => {
-    const img = ev.target.closest('.album-img');
-    if (!img) return;
-    
-    // Solo prevenir menú contextual si estamos en modo selección
-    if (selectionMode) {
-      ev.preventDefault();
-    }
-  }, { passive: false });
+  // Nota: No bloqueamos touchstart para permitir scroll en modo selección
+  // El menú contextual se previene en el listener de 'contextmenu' al final
 
   gallery.addEventListener('pointerdown', (ev) => {
     const img = ev.target.closest('.album-img');

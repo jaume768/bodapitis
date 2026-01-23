@@ -97,13 +97,59 @@
     vibrate(15);
     const items = Array.from(selected);
     
-    if (isMobile) {
-      // En móviles, mostrar mensaje que la descarga solo está disponible en PC
-      alert('La descarga directa solo está disponible en PC.\n\nDesde móvil puedes usar el botón "Compartir" para guardar los archivos en tu dispositivo.');
-      return;
+    // Mostrar feedback visual durante la descarga
+    let feedbackEl = null;
+    const showFeedback = (message) => {
+      if (!feedbackEl) {
+        feedbackEl = document.createElement('div');
+        feedbackEl.className = 'download-feedback';
+        feedbackEl.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.85);
+          color: white;
+          padding: 20px 30px;
+          border-radius: 12px;
+          font-size: 16px;
+          z-index: 10000;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
+        document.body.appendChild(feedbackEl);
+      }
+      feedbackEl.textContent = message;
+    };
+    
+    const hideFeedback = () => {
+      if (feedbackEl) {
+        feedbackEl.remove();
+        feedbackEl = null;
+      }
+    };
+    
+    // En móvil, mostrar advertencia inicial para múltiples archivos
+    if (isMobile && items.length > 1) {
+      const continuar = confirm(
+        `Se van a descargar ${items.length} archivos uno por uno.\n\n` +
+        `En algunos navegadores móviles (especialmente iOS Safari) puede que necesites:\n` +
+        `• Confirmar cada descarga manualmente\n` +
+        `• Dar permiso de descarga si te lo solicita\n\n` +
+        `TIP: El botón "Compartir" puede ser más cómodo para múltiples archivos.\n\n` +
+        `¿Continuar con la descarga?`
+      );
+      if (!continuar) {
+        return;
+      }
     }
     
-    // En PC, descarga directa con blobs
+    // Delay entre descargas: más largo en móvil para evitar bloqueos
+    const delayBetweenDownloads = isMobile ? 1000 : 500;
+    
+    let successCount = 0;
+    let failCount = 0;
+    
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const url = item.dataset.url;
@@ -112,8 +158,13 @@
       if (!url) continue;
       
       try {
+        // Mostrar progreso
+        showFeedback(`Descargando ${i + 1} de ${items.length}...`);
+        
         // Fetch para obtener el archivo como blob
         const response = await fetch(url);
+        if (!response.ok) throw new Error('Error en la descarga');
+        
         const blob = await response.blob();
         
         // Crear URL temporal del blob
@@ -135,16 +186,32 @@
         // Liberar el blob URL después de un momento
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         
+        successCount++;
+        
         // Delay entre descargas para no saturar el navegador
         if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, delayBetweenDownloads));
         }
       } catch (error) {
         console.error('Error descargando:', url, error);
+        failCount++;
       }
     }
     
-    vibrate(15);
+    // Mostrar resultado final
+    if (successCount > 0) {
+      showFeedback(
+        successCount === items.length
+          ? `✓ ${successCount} archivo${successCount > 1 ? 's descargados' : ' descargado'}`
+          : `✓ ${successCount} descargados, ${failCount} fallaron`
+      );
+      vibrate(15);
+    } else {
+      showFeedback('✗ Error en la descarga');
+    }
+    
+    // Ocultar feedback después de 2 segundos
+    setTimeout(hideFeedback, 2000);
   }
 
   // Función para compartir archivos seleccionados

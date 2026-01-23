@@ -49,12 +49,11 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 # Comando por defecto: Gunicorn
 CMD ["gunicorn", "project.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--threads", "2", \
+     "--workers", "3", \
      "--timeout", "300", \
      "--graceful-timeout", "120", \
      "--keep-alive", "75", \
-     "--worker-class", "gthread", \
+     "--worker-class", "sync", \
      "--worker-tmp-dir", "/dev/shm", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \

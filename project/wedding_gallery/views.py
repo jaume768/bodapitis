@@ -3,11 +3,13 @@ from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 from drf_spectacular.openapi import AutoSchema
 from .models import Media
 from .serializers import MediaSerializer, MediaListSerializer
+import requests
+from urllib.parse import unquote
 
 
 # Health check endpoint para monitoreo
@@ -165,3 +167,67 @@ class MediaViewSet(viewsets.ModelViewSet):
             'total_images': total_images,
             'total_videos': total_videos
         })
+    
+    @extend_schema(
+        tags=['media'],
+        summary='Descargar archivo (proxy)',
+        description='Descarga un archivo desde S3 a través del servidor, evitando problemas de CORS en móviles',
+        parameters=[
+            OpenApiParameter(
+                name='url',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='URL completa del archivo a descargar',
+                required=True
+            ),
+        ]
+    )
+    @action(detail=False, methods=['get'])
+    def download_proxy(self, request):
+        """
+        Endpoint proxy para descargar archivos desde S3.
+        Soluciona problemas de CORS en navegadores móviles.
+        """
+        file_url = request.query_params.get('url', None)
+        
+        if not file_url:
+            return Response(
+                {'error': 'Se requiere el parámetro "url"'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Fetch el archivo desde S3
+            response = requests.get(file_url, stream=True, timeout=30)
+            response.raise_for_status()
+            
+            # Obtener el tipo de contenido
+            content_type = response.headers.get('Content-Type', 'application/octet-stream')
+            
+            # Extraer nombre de archivo de la URL
+            filename = file_url.split('/')[-1]
+            filename = unquote(filename)  # Decodificar URL encoding
+            
+            # Crear respuesta streaming
+            django_response = StreamingHttpResponse(
+                response.iter_content(chunk_size=8192),
+                content_type=content_type
+            )
+            django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            # Copiar headers útiles
+            if 'Content-Length' in response.headers:
+                django_response['Content-Length'] = response.headers['Content-Length']
+            
+            return django_response
+            
+        except requests.RequestException as e:
+            return Response(
+                {'error': f'Error al descargar el archivo: {str(e)}'},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

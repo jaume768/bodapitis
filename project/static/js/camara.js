@@ -122,6 +122,15 @@
     resetSelection();
   });
 
+  // Función para obtener CSRF token
+  function getCsrfToken() {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
+    return cookieValue || '';
+  }
+
   // Confirmar subida
   btnConfirm.addEventListener('click', async function () {
     if (selectedFiles.length === 0) return;
@@ -131,8 +140,10 @@
 
     try {
       const UPLOAD_URL = '/api/media/';
+      const csrfToken = getCsrfToken();
       let uploadedCount = 0;
       let failedCount = 0;
+      let lastError = null;
 
       // Subir archivos secuencialmente
       for (let i = 0; i < selectedFiles.length; i++) {
@@ -141,20 +152,32 @@
         const safeName = file.name && file.name.trim() !== '' ? file.name : `archivo_${Date.now()}_${i}.jpg`;
         fd.append('file', file, safeName);
 
+        console.log(`Subiendo archivo ${i + 1}/${selectedFiles.length}: ${safeName} (${file.size} bytes, ${file.type})`);
+
         try {
           const resp = await fetch(UPLOAD_URL, {
             method: 'POST',
+            headers: {
+              'X-CSRFToken': csrfToken,
+            },
             body: fd,
           });
 
           if (!resp.ok) {
-            throw new Error('Error al subir');
+            const errorText = await resp.text();
+            const errorMsg = `HTTP ${resp.status}: ${errorText.substring(0, 100)}`;
+            console.error('Error en respuesta:', errorMsg);
+            throw new Error(errorMsg);
           }
+          
+          const result = await resp.json();
+          console.log('Archivo subido:', result);
           
           uploadedCount++;
           statusEl.textContent = `Subiendo ${uploadedCount}/${selectedFiles.length}…`;
         } catch (err) {
-          console.error('Error subiendo archivo:', file.name, err);
+          console.error('❌ Error subiendo archivo:', file.name, err);
+          lastError = err;
           failedCount++;
         }
       }

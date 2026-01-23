@@ -161,11 +161,16 @@
         // Mostrar progreso
         showFeedback(`Descargando ${i + 1} de ${items.length}...`);
         
+        // En móvil, usar endpoint proxy para evitar CORS
+        const downloadUrl = isMobile 
+          ? `/api/media/download_proxy/?url=${encodeURIComponent(url)}`
+          : url;
+        
         // Fetch para obtener el archivo como blob
-        const response = await fetch(url);
+        const response = await fetch(downloadUrl);
         if (!response.ok) {
           const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
-          console.error('Error en fetch:', errorMsg, 'URL:', url);
+          console.error('Error en fetch:', errorMsg, 'URL:', downloadUrl);
           throw new Error(errorMsg);
         }
         
@@ -175,7 +180,7 @@
         // Crear URL temporal del blob
         const blobUrl = URL.createObjectURL(blob);
         
-        // Obtener extensión del archivo desde la URL
+        // Obtener extensión del archivo desde la URL original
         const urlPath = new URL(url).pathname;
         const extension = urlPath.substring(urlPath.lastIndexOf('.'));
         

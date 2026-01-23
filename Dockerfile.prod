@@ -54,8 +54,6 @@ CMD ["gunicorn", "project.wsgi:application", \
      "--timeout", "300", \
      "--graceful-timeout", "120", \
      "--keep-alive", "75", \
-     "--limit-request-line", "8190", \
-     "--limit-request-field-size", "8190", \
      "--worker-class", "gthread", \
      "--worker-tmp-dir", "/dev/shm", \
      "--access-logfile", "-", \

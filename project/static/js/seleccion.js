@@ -483,6 +483,9 @@
     state.delete(img);
   };
 
+  // Flag para prevenir que click maneje eventos ya procesados por pointerup
+  let pointerupHandledClick = false;
+
   gallery.addEventListener('pointerup', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;
@@ -497,6 +500,11 @@
 
     if (!longTriggered) {
       if (wasInSelectionMode) {
+        // Marcar que este evento fue manejado por pointerup
+        pointerupHandledClick = true;
+        // Resetear el flag después de que click se haya disparado
+        setTimeout(() => { pointerupHandledClick = false; }, 0);
+        
         // Prevenir SIEMPRE si estábamos en modo selección, incluso si salimos después
         ev.preventDefault();
         ev.stopPropagation();
@@ -507,6 +515,9 @@
       // Si NO estamos en modo selección, dejar que el click pase normalmente
     } else {
       // Si fue long-press, prevenir el click que vendría después
+      pointerupHandledClick = true;
+      setTimeout(() => { pointerupHandledClick = false; }, 0);
+      
       ev.preventDefault();
       ev.stopPropagation();
       ev.stopImmediatePropagation();
@@ -539,6 +550,14 @@
   gallery.addEventListener('click', (ev) => {
     const img = ev.target.closest('.album-img');
     if (!img) return;
+    
+    // Si el click ya fue manejado por pointerup, ignorar
+    if (pointerupHandledClick) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      return;
+    }
     
     // Si estamos en modo selección, toggle la imagen
     if (selectionMode) {

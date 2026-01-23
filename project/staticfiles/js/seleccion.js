@@ -163,9 +163,14 @@
         
         // Fetch para obtener el archivo como blob
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Error en la descarga');
+        if (!response.ok) {
+          const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+          console.error('Error en fetch:', errorMsg, 'URL:', url);
+          throw new Error(errorMsg);
+        }
         
         const blob = await response.blob();
+        console.log(`Blob descargado: ${blob.size} bytes, tipo: ${blob.type}`);
         
         // Crear URL temporal del blob
         const blobUrl = URL.createObjectURL(blob);
@@ -193,8 +198,23 @@
           await new Promise(resolve => setTimeout(resolve, delayBetweenDownloads));
         }
       } catch (error) {
-        console.error('Error descargando:', url, error);
+        // Log detallado del error
+        const errorDetails = {
+          mensaje: error.message,
+          nombre: error.name,
+          url: url,
+          navegador: navigator.userAgent,
+          index: i + 1,
+          total: items.length
+        };
+        console.error('❌ Error descargando archivo:', errorDetails);
+        
         failCount++;
+        
+        // En móvil, guardar el primer error para mostrarlo después
+        if (isMobile && failCount === 1) {
+          window._lastDownloadError = errorDetails;
+        }
       }
     }
     
@@ -206,8 +226,49 @@
           : `✓ ${successCount} descargados, ${failCount} fallaron`
       );
       vibrate(15);
+      
+      // Mostrar detalles del error si hubo fallos y estamos en móvil
+      if (failCount > 0 && isMobile && window._lastDownloadError) {
+        setTimeout(() => {
+          const err = window._lastDownloadError;
+          alert(
+            `Detalles del error de descarga:\n\n` +
+            `Error: ${err.mensaje}\n` +
+            `Tipo: ${err.nombre}\n` +
+            `Archivo ${err.index} de ${err.total}\n\n` +
+            `Revisa la consola del navegador para más detalles.\n\n` +
+            `Tip: Prueba con el botón "Compartir" como alternativa.`
+          );
+          delete window._lastDownloadError;
+        }, 2500);
+      }
     } else {
-      showFeedback('✗ Error en la descarga');
+      // Si todo falló, mostrar error con detalles
+      if (isMobile && window._lastDownloadError) {
+        const err = window._lastDownloadError;
+        showFeedback(
+          `✗ Error: ${err.mensaje}\n` +
+          `(${err.nombre})`
+        );
+        
+        setTimeout(() => {
+          alert(
+            `Detalles del error de descarga:\n\n` +
+            `Error: ${err.mensaje}\n` +
+            `Tipo: ${err.nombre}\n` +
+            `URL: ${err.url}\n\n` +
+            `Navegador: ${err.navegador.substring(0, 50)}...\n\n` +
+            `Soluciones posibles:\n` +
+            `• Verifica tu conexión a internet\n` +
+            `• Intenta con menos archivos a la vez\n` +
+            `• Usa el botón "Compartir" como alternativa\n` +
+            `• Comprueba la consola del navegador (DevTools)`
+          );
+          delete window._lastDownloadError;
+        }, 2500);
+      } else {
+        showFeedback('✗ Error en la descarga');
+      }
     }
     
     // Ocultar feedback después de 2 segundos

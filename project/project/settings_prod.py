@@ -11,6 +11,9 @@ SECRET_KEY = config('SECRET_KEY')  # DEBE estar en .env, nunca hardcoded
 
 # Hosts permitidos - IMPORTANTE: añade tu dominio
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+# Añadir localhost para healthchecks internos de Docker
+if 'localhost' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('localhost')
 
 # HTTPS/SSL
 SECURE_SSL_REDIRECT = True

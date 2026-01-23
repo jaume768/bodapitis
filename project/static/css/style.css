@@ -279,7 +279,7 @@ a {
   object-fit: cover;
   border-radius: 8px;
   position: relative;
-  touch-action: none;
+  touch-action: pan-y;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   user-select: none;

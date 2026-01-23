@@ -131,6 +131,32 @@
     return cookieValue || '';
   }
 
+  // Helper para fetch con timeout
+  async function fetchWithTimeout(url, options, timeoutMs = 60000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout: El archivo tardó demasiado en subir');
+      }
+      throw error;
+    }
+  }
+
+  // Helper para delay entre subidas
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   // Confirmar subida
   btnConfirm.addEventListener('click', async function () {
     if (selectedFiles.length === 0) return;
@@ -143,59 +169,83 @@
       const csrfToken = getCsrfToken();
       let uploadedCount = 0;
       let failedCount = 0;
-      let lastError = null;
+      const failedFiles = [];
 
-      // Subir archivos secuencialmente
+      // Subir archivos secuencialmente con delay
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         const fd = new FormData();
         const safeName = file.name && file.name.trim() !== '' ? file.name : `archivo_${Date.now()}_${i}.jpg`;
         fd.append('file', file, safeName);
 
-        console.log(`Subiendo archivo ${i + 1}/${selectedFiles.length}: ${safeName} (${file.size} bytes, ${file.type})`);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        console.log(`📤 Subiendo ${i + 1}/${selectedFiles.length}: ${safeName} (${fileSizeMB}MB, ${file.type})`);
 
         try {
-          const resp = await fetch(UPLOAD_URL, {
+          // Timeout mayor para archivos grandes (60s base + 1s por MB)
+          const timeoutMs = 60000 + (file.size / (1024 * 1024)) * 1000;
+          
+          const resp = await fetchWithTimeout(UPLOAD_URL, {
             method: 'POST',
             headers: {
               'X-CSRFToken': csrfToken,
             },
             body: fd,
-          });
+          }, timeoutMs);
 
           if (!resp.ok) {
             const errorText = await resp.text();
-            const errorMsg = `HTTP ${resp.status}: ${errorText.substring(0, 100)}`;
-            console.error('Error en respuesta:', errorMsg);
+            const errorMsg = `HTTP ${resp.status}: ${errorText.substring(0, 200)}`;
+            console.error('❌ Error en respuesta:', errorMsg);
             throw new Error(errorMsg);
           }
           
           const result = await resp.json();
-          console.log('Archivo subido:', result);
+          console.log('✅ Archivo subido:', result);
           
           uploadedCount++;
           statusEl.textContent = `Subiendo ${uploadedCount}/${selectedFiles.length}…`;
+          
+          // Delay entre subidas para no saturar (excepto en el último)
+          if (i < selectedFiles.length - 1) {
+            await delay(800); // 800ms entre subidas
+          }
         } catch (err) {
-          console.error('❌ Error subiendo archivo:', file.name, err);
-          lastError = err;
+          console.error(`❌ Error subiendo archivo ${safeName}:`, err);
+          failedFiles.push({
+            name: safeName,
+            size: fileSizeMB,
+            error: err.message || 'Error desconocido'
+          });
           failedCount++;
         }
       }
 
       if (failedCount === 0) {
-        statusEl.textContent = `${uploadedCount} archivos subidos. Redirigiendo…`;
+        statusEl.textContent = `✅ ${uploadedCount} archivos subidos. Redirigiendo…`;
         setTimeout(() => {
           window.location.href = '/album/';
         }, 1000);
       } else {
-        statusEl.textContent = `${uploadedCount} subidos, ${failedCount} fallaron. Redirigiendo…`;
+        // Mostrar alerta con detalles de errores
+        let errorDetails = `Subidos: ${uploadedCount}\nFallaron: ${failedCount}\n\n`;
+        errorDetails += 'Archivos que fallaron:\n';
+        failedFiles.forEach((f, idx) => {
+          errorDetails += `\n${idx + 1}. ${f.name} (${f.size}MB)\n   Error: ${f.error}\n`;
+        });
+        
+        alert(errorDetails);
+        console.error('📋 Resumen de errores:', failedFiles);
+        
+        statusEl.textContent = `⚠️ ${uploadedCount} subidos, ${failedCount} fallaron. Redirigiendo…`;
         setTimeout(() => {
           window.location.href = '/album/';
-        }, 2000);
+        }, 3000);
       }
     } catch (err) {
-      console.error(err);
-      statusEl.textContent = 'Error al subir. Inténtalo de nuevo.';
+      console.error('❌ Error general:', err);
+      alert(`Error al subir archivos:\n\n${err.message}\n\nRevisa la consola para más detalles.`);
+      statusEl.textContent = '❌ Error al subir. Inténtalo de nuevo.';
     }
   });
 

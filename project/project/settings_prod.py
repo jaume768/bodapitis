@@ -91,6 +91,11 @@ LOGGING = {
     },
 }
 
+# Configuración para uploads grandes
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 # Email (opcional, para notificaciones de errores)
 # ADMINS = [('Tu Nombre', 'tu@email.com')]
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

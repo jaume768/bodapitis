@@ -161,10 +161,8 @@
         // Mostrar progreso
         showFeedback(`Descargando ${i + 1} de ${items.length}...`);
         
-        // En móvil, usar endpoint proxy para evitar CORS
-        const downloadUrl = isMobile 
-          ? `/api/media/download_proxy/?url=${encodeURIComponent(url)}`
-          : url;
+        // Usar endpoint proxy para evitar CORS (tanto móvil como PC)
+        const downloadUrl = `/api/media/download_proxy/?url=${encodeURIComponent(url)}`;
         
         // Fetch para obtener el archivo como blob
         const response = await fetch(downloadUrl);
